@@ -723,9 +723,7 @@
       hideError();
       hideNotice();
       outputStatsEl.textContent = '';
-      if(state.editPreview){
-        showPreviewEditTextarea();
-      } else {
+      if(!previewEditFocused()){
         outputEl.innerHTML = '';
         outputEl.appendChild(el('div','placeholder','A pretty pretty JSON will show up here'));
       }
@@ -742,9 +740,7 @@
       hideNotice();
       showError(result.error, text);
       outputStatsEl.textContent = '';
-      if(state.editPreview){
-        showPreviewEditTextarea();
-      } else {
+      if(!previewEditFocused()){
         outputEl.innerHTML = '';
         outputEl.appendChild(el('div','placeholder','Fix the error below to see a preview.'));
       }
@@ -767,6 +763,10 @@
     }
 
     renderOutput();
+  }
+
+  function previewEditFocused(){
+    return !!(previewEditEl && document.activeElement === previewEditEl);
   }
 
   function showError(err, text){
@@ -841,7 +841,14 @@
       outputEl.appendChild(root);
       walkToLevel(root, 0, state.level);
     } else if(state.editPreview){
-      showPreviewEditTextarea();
+      var ta = getOrCreatePreviewEdit();
+      if(outputEl.firstElementChild !== ta){
+        outputEl.innerHTML = '';
+        outputEl.appendChild(ta);
+      }
+      if(document.activeElement !== ta){
+        ta.value = JSON.stringify(state.value, null, currentIndent());
+      }
     } else {
       outputEl.innerHTML = '';
       outputEl.appendChild(buildRaw(state.value));
@@ -860,49 +867,25 @@
       previewEditEl.setAttribute('autocomplete','off');
       previewEditEl.setAttribute('autocapitalize','off');
       previewEditEl.addEventListener('input', function(){
-        mirrorToInput();
+        inputEl.value = previewEditEl.value;
+        syncInputToPreviewCaret();
         scheduleRender();
       });
-      previewEditEl.addEventListener('click', mirrorToInput);
-      previewEditEl.addEventListener('keyup', mirrorToInput);
+      previewEditEl.addEventListener('click', syncInputToPreviewCaret);
+      previewEditEl.addEventListener('keyup', syncInputToPreviewCaret);
     }
     return previewEditEl;
   }
 
-  // Edit-preview mode keeps the two boxes showing the exact same text at all
-  // times (not a reformatted copy) - editing, clicking, or navigating in
-  // either one mirrors the text into the other and jumps its scroll/caret to
-  // match, so neither side ever falls out of sync or shows something stale.
-  function mirrorToInput(){
-    if(inputEl.value !== previewEditEl.value) inputEl.value = previewEditEl.value;
+  // Since the edit-preview textarea always holds the exact same text as the
+  // input (character for character), the input's caret and scroll position
+  // can jump to match wherever the user is editing/clicking on the right.
+  function syncInputToPreviewCaret(){
     var pos = previewEditEl.selectionStart;
     inputEl.setSelectionRange(pos, previewEditEl.selectionEnd);
     var lineIndex = (previewEditEl.value.slice(0, pos).match(/\n/g) || []).length;
     var lineHeight = parseFloat(getComputedStyle(inputEl).lineHeight) || 16;
     inputEl.scrollTop = Math.max(0, lineIndex * lineHeight - inputEl.clientHeight / 2);
-  }
-
-  function mirrorToPreview(){
-    if(!state.editPreview) return;
-    var ta = getOrCreatePreviewEdit();
-    if(document.activeElement === ta) return; // user is typing there themselves
-    if(ta.value !== inputEl.value) ta.value = inputEl.value;
-    var pos = inputEl.selectionStart;
-    ta.setSelectionRange(pos, inputEl.selectionEnd);
-    var lineIndex = (inputEl.value.slice(0, pos).match(/\n/g) || []).length;
-    var lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 16;
-    ta.scrollTop = Math.max(0, lineIndex * lineHeight - ta.clientHeight / 2);
-  }
-
-  // Ensures the preview-edit textarea is mounted in the output panel and
-  // mirroring the input, regardless of whether the current JSON is valid.
-  function showPreviewEditTextarea(){
-    var ta = getOrCreatePreviewEdit();
-    if(outputEl.firstElementChild !== ta){
-      outputEl.innerHTML = '';
-      outputEl.appendChild(ta);
-    }
-    mirrorToPreview();
   }
 
   function computeMaxDepth(v, depth){
@@ -1227,10 +1210,7 @@
       btnEditPreview.setAttribute('aria-pressed','false');
       btnEditPreview.title = 'Edit preview directly';
     }
-    // renderAll (not just renderOutput) so switching away from edit-preview
-    // correctly clears the mirrored textarea even if the JSON is currently
-    // invalid or empty, not only when there's a valid value to re-render.
-    renderAll();
+    if(state.ok) renderOutput();
   }
   viewButtons.forEach(function(btn){
     btn.addEventListener('click', function(){ setView(btn.getAttribute('data-view')); });
@@ -1243,14 +1223,16 @@
     btnEditPreview.setAttribute('aria-pressed', String(state.editPreview));
     btnEditPreview.title = state.editPreview ? 'Editing preview (click to stop)' : 'Edit preview directly';
     // Turning edit mode on normalizes the input to the same pretty-printed
-    // text the preview will show, so the two start out identical.
+    // text the preview will show, so the two stay character-for-character
+    // identical - which is what lets clicking in the preview scroll/jump the
+    // input to the matching spot.
     if(state.editPreview && state.ok){
       inputEl.value = JSON.stringify(state.value, null, currentIndent());
     }
     if(state.editPreview && state.view !== 'raw'){
-      setView('raw'); // setView always calls renderAll() itself
-    } else {
-      renderAll();
+      setView('raw');
+    } else if(state.ok){
+      renderOutput();
     }
   });
 
@@ -1399,12 +1381,7 @@
 
   // ---------- init ----------
 
-  inputEl.addEventListener('input', function(){
-    mirrorToPreview();
-    scheduleRender();
-  });
-  inputEl.addEventListener('click', mirrorToPreview);
-  inputEl.addEventListener('keyup', mirrorToPreview);
+  inputEl.addEventListener('input', scheduleRender);
   renderAll();
 })();
 </script>
