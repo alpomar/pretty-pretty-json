@@ -409,6 +409,49 @@ test('input and preview placeholder text use the exact same color, in both theme
 // Bidirectional preview editing
 // ---------------------------------------------------------------------
 
+test('closing braces/brackets in the tree never show a bogus expand icon', async (page) => {
+  // Regression test: the closing-brace line used a plain spacer <span> that
+  // happened to share the .jv-toggle class (for alignment), so it picked up
+  // the toggle's disclosure-triangle ::before too, even though it's not a
+  // button and does nothing when "clicked".
+  await page.fill('#input', JSON.stringify({ a: { b: 1 } }));
+  await page.waitForTimeout(200);
+  await page.click('#btnDepthMax');
+  await page.waitForTimeout(100);
+  const spacers = await page.$$('.jv-toggle-space');
+  assert.ok(spacers.length > 0, 'expected at least one closing-brace spacer in this nested doc');
+  const visibilities = await page.$$eval('.jv-toggle-space', (els) => els.map((el) => getComputedStyle(el, '::before').visibility));
+  visibilities.forEach((v) => assert.strictEqual(v, 'hidden'));
+});
+
+test('clicking or navigating in the edit-preview textarea scrolls and moves the caret in the input to match', async (page) => {
+  const obj = {};
+  for (let i = 0; i < 80; i++) obj['key' + i] = { value: i };
+  await page.fill('#input', JSON.stringify(obj));
+  await page.waitForTimeout(200);
+  await page.click('[data-view="raw"]');
+  await page.click('#btnEditPreview');
+  await page.waitForTimeout(150);
+
+  const previewText = await page.inputValue('#previewEdit');
+  const inputText = await page.inputValue('#input');
+  assert.strictEqual(inputText, previewText, 'entering edit mode should normalize the input to the same pretty text');
+
+  const targetIndex = previewText.indexOf('"key60"');
+  await page.evaluate((idx) => {
+    const ta = document.getElementById('previewEdit');
+    ta.focus();
+    ta.setSelectionRange(idx, idx);
+    ta.dispatchEvent(new Event('click', { bubbles: true }));
+  }, targetIndex);
+  await page.waitForTimeout(100);
+
+  const inputSelStart = await page.$eval('#input', (el) => el.selectionStart);
+  const inputScrollTop = await page.$eval('#input', (el) => el.scrollTop);
+  assert.strictEqual(inputSelStart, targetIndex, "input's caret should jump to the same offset clicked in the preview");
+  assert.ok(inputScrollTop > 0, 'input should have scrolled down to reveal that section');
+});
+
 test('edit-preview mode syncs both directions and cleans up when turned off', async (page) => {
   await page.fill('#input', JSON.stringify({ a: 1, b: 2 }));
   await page.waitForTimeout(200);

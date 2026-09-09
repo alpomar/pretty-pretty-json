@@ -403,6 +403,7 @@
   .jv-toggle:hover::before{border-left-color:var(--accent);}
   .jv-toggle[aria-expanded="true"]{transform:rotate(90deg);}
   .jv-toggle:disabled{visibility:hidden;}
+  .jv-toggle-space::before{visibility:hidden;}
   .jv-key{color:var(--key);}
   .jv-index{color:var(--text-dim);}
   .jv-colon{color:var(--punct);margin-right:4px;}
@@ -849,10 +850,24 @@
       previewEditEl.setAttribute('autocapitalize','off');
       previewEditEl.addEventListener('input', function(){
         inputEl.value = previewEditEl.value;
+        syncInputToPreviewCaret();
         scheduleRender();
       });
+      previewEditEl.addEventListener('click', syncInputToPreviewCaret);
+      previewEditEl.addEventListener('keyup', syncInputToPreviewCaret);
     }
     return previewEditEl;
+  }
+
+  // Since the edit-preview textarea always holds the exact same text as the
+  // input (character for character), the input's caret and scroll position
+  // can jump to match wherever the user is editing/clicking on the right.
+  function syncInputToPreviewCaret(){
+    var pos = previewEditEl.selectionStart;
+    inputEl.setSelectionRange(pos, previewEditEl.selectionEnd);
+    var lineIndex = (previewEditEl.value.slice(0, pos).match(/\n/g) || []).length;
+    var lineHeight = parseFloat(getComputedStyle(inputEl).lineHeight) || 16;
+    inputEl.scrollTop = Math.max(0, lineIndex * lineHeight - inputEl.clientHeight / 2);
   }
 
   function computeMaxDepth(v, depth){
@@ -955,7 +970,7 @@
 
     var closeLine = el('div','jv-line');
     closeLine.hidden = true;
-    var closeSpacer = el('span','jv-toggle','');
+    var closeSpacer = el('span','jv-toggle jv-toggle-space','');
     closeLine.appendChild(closeSpacer);
     closeLine.appendChild(el('span','jv-punc', closeBrace));
     closeLine.appendChild(el('span','jv-comma', trailingComma));
@@ -1198,6 +1213,13 @@
     state.editPreview = !state.editPreview;
     btnEditPreview.setAttribute('aria-pressed', String(state.editPreview));
     btnEditPreview.title = state.editPreview ? 'Editing preview (click to stop)' : 'Edit preview directly';
+    // Turning edit mode on normalizes the input to the same pretty-printed
+    // text the preview will show, so the two stay character-for-character
+    // identical - which is what lets clicking in the preview scroll/jump the
+    // input to the matching spot.
+    if(state.editPreview && state.ok){
+      inputEl.value = JSON.stringify(state.value, null, currentIndent());
+    }
     if(state.editPreview && state.view !== 'raw'){
       setView('raw');
     } else if(state.ok){
