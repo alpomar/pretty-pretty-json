@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Free, privacy-first JSON prettifier and JWT decoder that runs 100% client-side - no network requests, no cookies, no analytics. Paste, drag, or edit and see it instantly formatted.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <title>Pretty Pretty JSON</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext x='2' y='18' font-size='16' font-family='monospace'%3E%7B%7D%3C/text%3E%3C/svg%3E">
@@ -43,40 +44,6 @@
     --shadow:0 1px 2px rgba(20,22,28,.05);
     --shadow-md:0 4px 14px rgba(20,22,28,.08);
     color-scheme:light;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --bg:#101217;
-      --panel-bg:#171a21;
-      --border:#2a2e37;
-      --border-strong:#3a3f4b;
-      --text:#e6e7ea;
-      --text-dim:#8b909c;
-      --accent:#5b9cff;
-      --accent-text:#0b0d12;
-      --btn-bg:#1d212a;
-      --btn-bg-hover:#262b36;
-      --btn-border:#343a46;
-      --input-bg:#12151b;
-      --key:#9cdcfe;
-      --string:#ce9178;
-      --number:#b5cea8;
-      --boolean:#c586c0;
-      --nullc:#8b909c;
-      --punct:#9aa0ab;
-      --guide:#2a2e37;
-      --error-bg:#3a1c1c;
-      --error-border:#5c2b2b;
-      --error-text:#f2b8b5;
-      --warning-bg:#332707;
-      --warning-border:#5c481a;
-      --warning-text:#f0d98a;
-      --info-bg:#152238;
-      --info-border:#28406b;
-      --info-text:#a9c6f5;
-      --shadow-md:0 4px 14px rgba(0,0,0,.35);
-      color-scheme:dark;
-    }
   }
   :root[data-theme="dark"]{
     --bg:#101217;
@@ -139,7 +106,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-family:var(--font-mono);
     font-weight:700;
     font-size:15px;
     box-shadow:var(--shadow-md);
@@ -191,38 +158,26 @@
   button:focus-visible, .btn:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
   button.primary:hover{filter:brightness(1.08);}
-  .view-toggle{
+  .view-toggle, .stepper{
     display:inline-flex;
     border:1px solid var(--btn-border);
     border-radius:8px;
     overflow:hidden;
     box-shadow:var(--shadow);
   }
-  .view-toggle button{
+  .stepper{align-items:stretch;}
+  .view-toggle button, .stepper button{
     border:none;
     border-radius:0;
     box-shadow:none;
     background:var(--btn-bg);
-  }
-  .view-toggle button + button{border-left:1px solid var(--btn-border);}
-  .view-toggle button.active{background:var(--accent);color:var(--accent-text);}
-  .stepper{
-    display:inline-flex;
-    align-items:stretch;
-    border:1px solid var(--btn-border);
-    border-radius:8px;
-    overflow:hidden;
-    box-shadow:var(--shadow);
   }
   .stepper button{
-    border:none;
-    border-radius:0;
-    box-shadow:none;
-    background:var(--btn-bg);
     padding:6px 9px;
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-family:var(--font-mono);
   }
-  .stepper button + button{border-left:1px solid var(--btn-border);}
+  .view-toggle button + button, .stepper button + button{border-left:1px solid var(--btn-border);}
+  .view-toggle button.active{background:var(--accent);color:var(--accent-text);}
   .stepper-label{
     display:inline-flex;
     align-items:center;
@@ -233,7 +188,7 @@
     color:var(--text-dim);
     border-left:1px solid var(--btn-border);
     border-right:1px solid var(--btn-border);
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-family:var(--font-mono);
   }
   select{padding:6px 8px;}
   .icon-btn{
@@ -335,7 +290,7 @@
     color:var(--text-dim);
     border-bottom:1px solid var(--border);
   }
-  .stats{font-weight:500;text-transform:none;letter-spacing:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;}
+  .stats{font-weight:500;text-transform:none;letter-spacing:0;font-family:var(--font-mono);font-size:11.5px;}
   .text-edit{
     border:none;
     outline:none;
@@ -352,7 +307,7 @@
   }
   .text-edit::placeholder{color:var(--text-dim);opacity:1;}
   #input{flex:1 1 auto;}
-  .output-edit{flex:1 1 auto;height:100%;}
+  .output-edit{height:100%;}
   .output{
     flex:1 1 auto;
     overflow:auto;
@@ -365,7 +320,6 @@
     font-family:var(--content-font);
   }
   .output pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:inherit;}
-  .jv-row{white-space:normal;}
   .jv-line{
     display:flex;
     align-items:flex-start;
@@ -435,7 +389,7 @@
     background:var(--error-bg);
     border:1px solid var(--error-border);
     color:var(--error-text);
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-family:var(--font-mono);
     cursor:pointer;
   }
   .banner-warning{
@@ -558,6 +512,15 @@
   };
 
   // ---------- helpers ----------
+
+  // localStorage can throw (private browsing, disabled storage, etc.) - these
+  // make every preference read/write a no-op instead of an uncaught error.
+  function safeGet(key){
+    try{ return localStorage.getItem(key); }catch(e){ return null; }
+  }
+  function safeSet(key, value){
+    try{ localStorage.setItem(key, value); }catch(e){}
+  }
 
   function el(tag, className, text){
     var e = document.createElement(tag);
@@ -791,7 +754,6 @@
 
     if(result.mode === 'strict'){
       state.leniencyNotice = null;
-      state.leniencyVariant = 'warning';
     } else if(result.mode === 'jwt'){
       state.leniencyNotice = 'Decoded JWT - ' + result.notes.join('; ') + '. Decoded locally; signature not verified.';
       state.leniencyVariant = 'info';
@@ -1154,7 +1116,8 @@
   }
 
   function indentUnit(){
-    return indentSel.value === 'tab' ? '\t' : ' '.repeat(Number(indentSel.value) || 2);
+    var v = currentIndent();
+    return v === '\t' ? v : ' '.repeat(v || 2);
   }
   function indentSpan(depth){
     return indentUnit().repeat(depth);
@@ -1187,19 +1150,9 @@
         pre.appendChild(el('span','jv-key', JSON.stringify(entries[i][0])));
         pre.appendChild(document.createTextNode(': '));
       }
-      walkRawInline(entries[i][1], depth+1, i === entries.length-1, pre);
+      walkRaw(entries[i][1], depth+1, i === entries.length-1, pre);
     }
     pre.appendChild(document.createTextNode(indentSpan(depth) + close + comma + '\n'));
-  }
-
-  function walkRawInline(value, depth, isLast, pre){
-    var t = valueType(value);
-    if(t !== 'object' && t !== 'array'){
-      appendPrimitiveValue(pre, value);
-      pre.appendChild(document.createTextNode((isLast?'':',') + '\n'));
-      return;
-    }
-    walkRaw(value, depth, isLast, pre);
   }
 
   // ---------- toolbar actions ----------
@@ -1303,8 +1256,7 @@
     btnTheme.title = 'Theme: ' + label + ' (click to switch to ' + (mode === 'light' ? 'Dark' : 'Light') + ')';
     btnTheme.setAttribute('aria-label', 'Theme: ' + label + '. Click to switch theme.');
   }
-  var storedTheme = null;
-  try{ storedTheme = localStorage.getItem(THEME_KEY); }catch(e){}
+  var storedTheme = safeGet(THEME_KEY);
   if(storedTheme !== 'light' && storedTheme !== 'dark'){
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     storedTheme = prefersDark ? 'dark' : 'light';
@@ -1312,7 +1264,7 @@
   applyTheme(storedTheme);
   btnTheme.addEventListener('click', function(){
     applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-    try{ localStorage.setItem(THEME_KEY, currentTheme); }catch(e){}
+    safeSet(THEME_KEY, currentTheme);
   });
 
   // ---------- font ----------
@@ -1333,12 +1285,11 @@
     btnFont.title = 'Font: ' + label + ' (click for ' + nextLabel + '). Font selection applies to the input and the preview boxes.';
     btnFont.setAttribute('aria-label', 'Font: ' + label + '. Click to change font. Applies to both the input and the preview boxes.');
   }
-  var storedFont = null;
-  try{ storedFont = localStorage.getItem(FONT_KEY); }catch(e){}
+  var storedFont = safeGet(FONT_KEY);
   applyFont(FONTS.indexOf(storedFont) !== -1 ? storedFont : 'mono');
   btnFont.addEventListener('click', function(){
     applyFont(FONTS[(FONTS.indexOf(currentFont)+1) % FONTS.length]);
-    try{ localStorage.setItem(FONT_KEY, currentFont); }catch(e){}
+    safeSet(FONT_KEY, currentFont);
   });
 
   // ---------- resizable split ----------
@@ -1350,10 +1301,8 @@
   var footerLinkEl = document.getElementById('footerLink');
   var SPLIT_KEY = 'ppj-split-pct';
   var splitPct = 50;
-  try{
-    var storedSplit = parseFloat(localStorage.getItem(SPLIT_KEY));
-    if(!isNaN(storedSplit) && storedSplit >= 15 && storedSplit <= 85) splitPct = storedSplit;
-  }catch(e){}
+  var storedSplit = parseFloat(safeGet(SPLIT_KEY));
+  if(!isNaN(storedSplit) && storedSplit >= 15 && storedSplit <= 85) splitPct = storedSplit;
 
   // Below this width the panels stack vertically, so the divider becomes a
   // horizontal bar you drag up/down instead of a vertical one you drag
@@ -1386,7 +1335,7 @@
   applySplit(splitPct);
 
   function persistSplit(){
-    try{ localStorage.setItem(SPLIT_KEY, String(splitPct)); }catch(e){}
+    safeSet(SPLIT_KEY, String(splitPct));
   }
 
   function updateDividerOrientation(){
