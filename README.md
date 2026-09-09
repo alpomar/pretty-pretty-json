@@ -42,3 +42,7 @@ npm test
 ```
 
 See [tests/README.md](tests/README.md) for what's covered.
+
+## About
+
+I'm Filipe Albero Pomar. Engineering manager, sometime product manager, still hands-on with the code. Curious how? More at [alpomar.dev](https://alpomar.dev/)
