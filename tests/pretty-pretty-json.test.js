@@ -486,6 +486,78 @@ test('edit-preview mode syncs both directions and cleans up when turned off', as
   assert.ok(await page.$('#output pre'));
 });
 
+test('clicking or navigating in the input scrolls and moves the caret in the edit-preview textarea to match', async (page) => {
+  const obj = {};
+  for (let i = 0; i < 80; i++) obj['key' + i] = { value: i };
+  await page.fill('#input', JSON.stringify(obj));
+  await page.waitForTimeout(200);
+  await page.click('[data-view="raw"]');
+  await page.click('#btnEditPreview');
+  await page.waitForTimeout(150);
+
+  const inputText = await page.inputValue('#input');
+  const targetIndex = inputText.indexOf('"key60"');
+  await page.evaluate((idx) => {
+    const el = document.getElementById('input');
+    el.focus();
+    el.setSelectionRange(idx, idx);
+    el.dispatchEvent(new Event('click', { bubbles: true }));
+  }, targetIndex);
+  await page.waitForTimeout(100);
+
+  const previewSelStart = await page.$eval('#previewEdit', (el) => el.selectionStart);
+  const previewScrollTop = await page.$eval('#previewEdit', (el) => el.scrollTop);
+  assert.strictEqual(previewSelStart, targetIndex);
+  assert.ok(previewScrollTop > 0, 'preview should have scrolled down to reveal that section');
+});
+
+test('typing in the input mirrors the exact raw text into the preview immediately, verbatim, even while invalid', async (page) => {
+  await page.fill('#input', JSON.stringify({ a: 1, b: 2 }));
+  await page.waitForTimeout(200);
+  await page.click('[data-view="raw"]');
+  await page.click('#btnEditPreview');
+  await page.waitForTimeout(150);
+
+  await page.click('#input');
+  await page.keyboard.press('Control+Home');
+  await page.type('#input', 'XY', { delay: 5 });
+  const inputVal = await page.inputValue('#input');
+  const previewVal = await page.$eval('#previewEdit', (el) => el.value);
+  assert.strictEqual(previewVal, inputVal, 'preview should mirror the exact text, not a reformatted version');
+  assert.ok(inputVal.includes('XY'));
+
+  // That edit made the JSON invalid - the mirror (and mirrored text) must
+  // survive it, once the debounced re-render has actually run.
+  await page.waitForTimeout(250);
+  assert.strictEqual(await page.isVisible('#errorBanner'), true);
+  assert.ok(await page.$('#previewEdit'), 'preview textarea should stay mounted through invalid JSON');
+  const inputValAfter = await page.inputValue('#input');
+  const previewValAfter = await page.$eval('#previewEdit', (el) => el.value);
+  assert.strictEqual(previewValAfter, inputValAfter);
+});
+
+test('toggling edit-preview off and back on while the JSON is invalid mounts/unmounts the mirror correctly', async (page) => {
+  await page.fill('#input', JSON.stringify({ a: 1 }));
+  await page.waitForTimeout(200);
+  await page.click('[data-view="raw"]');
+  await page.click('#btnEditPreview');
+  await page.waitForTimeout(150);
+
+  await page.fill('#input', '{"broken": ');
+  await page.waitForTimeout(250);
+  assert.ok(await page.$('#previewEdit'), 'mirror should still be showing while invalid');
+
+  await page.click('#btnEditPreview'); // turn off
+  await page.waitForTimeout(150);
+  assert.strictEqual(await page.$('#previewEdit'), null);
+  assert.strictEqual(await page.isVisible('#errorBanner'), true);
+
+  await page.click('#btnEditPreview'); // turn back on
+  await page.waitForTimeout(150);
+  const mirrored = await page.$eval('#previewEdit', (el) => el.value);
+  assert.strictEqual(mirrored, '{"broken": ');
+});
+
 test('switching to Tree view turns off edit-preview mode', async (page) => {
   await page.fill('#input', '{"a":1}');
   await page.waitForTimeout(200);
