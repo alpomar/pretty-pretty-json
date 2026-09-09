@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>Pretty Pretty JSON</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext x='2' y='18' font-size='16' font-family='monospace'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#f3f4f7;
+    --panel-bg:#ffffff;
+    --border:#dadde3;
+    --border-strong:#c2c6ce;
+    --text:#1b1f24;
+    --text-dim:#6b7280;
+    --accent:#2563eb;
+    --accent-text:#ffffff;
+    --btn-bg:#ffffff;
+    --btn-bg-hover:#eef0f4;
+    --btn-border:#cfd3da;
+    --input-bg:#ffffff;
+    --key:#0550ae;
+    --string:#116329;
+    --number:#953800;
+    --boolean:#8250df;
+    --nullc:#57606a;
+    --punct:#57606a;
+    --guide:#e3e5ea;
+    --error-bg:#fdecea;
+    --error-border:#f3c2bd;
+    --error-text:#7f1d1d;
+    --warning-bg:#fff8e6;
+    --warning-border:#f0dc9c;
+    --warning-text:#7a5600;
+    --info-bg:#eef4ff;
+    --info-border:#c9dcfb;
+    --info-text:#1c3d78;
+    --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-serif:Georgia,Cambria,"Times New Roman",Times,serif;
+    --content-font:var(--font-mono);
+    --shadow:0 1px 2px rgba(20,22,28,.05);
+    --shadow-md:0 4px 14px rgba(20,22,28,.08);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101217;
+      --panel-bg:#171a21;
+      --border:#2a2e37;
+      --border-strong:#3a3f4b;
+      --text:#e6e7ea;
+      --text-dim:#8b909c;
+      --accent:#5b9cff;
+      --accent-text:#0b0d12;
+      --btn-bg:#1d212a;
+      --btn-bg-hover:#262b36;
+      --btn-border:#343a46;
+      --input-bg:#12151b;
+      --key:#9cdcfe;
+      --string:#ce9178;
+      --number:#b5cea8;
+      --boolean:#c586c0;
+      --nullc:#8b909c;
+      --punct:#9aa0ab;
+      --guide:#2a2e37;
+      --error-bg:#3a1c1c;
+      --error-border:#5c2b2b;
+      --error-text:#f2b8b5;
+      --warning-bg:#332707;
+      --warning-border:#5c481a;
+      --warning-text:#f0d98a;
+      --info-bg:#152238;
+      --info-border:#28406b;
+      --info-text:#a9c6f5;
+      --shadow-md:0 4px 14px rgba(0,0,0,.35);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101217;
+    --panel-bg:#171a21;
+    --border:#2a2e37;
+    --border-strong:#3a3f4b;
+    --text:#e6e7ea;
+    --text-dim:#8b909c;
+    --accent:#5b9cff;
+    --accent-text:#0b0d12;
+    --btn-bg:#1d212a;
+    --btn-bg-hover:#262b36;
+    --btn-border:#343a46;
+    --input-bg:#12151b;
+    --key:#9cdcfe;
+    --string:#ce9178;
+    --number:#b5cea8;
+    --boolean:#c586c0;
+    --nullc:#8b909c;
+    --punct:#9aa0ab;
+    --guide:#2a2e37;
+    --error-bg:#3a1c1c;
+    --error-border:#5c2b2b;
+    --error-text:#f2b8b5;
+    --warning-bg:#332707;
+    --warning-border:#5c481a;
+    --warning-text:#f0d98a;
+    --info-bg:#152238;
+    --info-border:#28406b;
+    --info-text:#a9c6f5;
+    --shadow-md:0 4px 14px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;
+    flex-direction:column;
+  }
+  .app{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    padding:14px;
+    gap:10px;
+  }
+  header{flex:0 0 auto;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    flex:0 0 auto;
+    width:36px;
+    height:36px;
+    border-radius:10px;
+    background:linear-gradient(155deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #7c3aed));
+    color:var(--accent-text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-weight:700;
+    font-size:15px;
+    box-shadow:var(--shadow-md);
+  }
+  header h1{
+    margin:0 0 2px;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--text-dim);
+    font-size:12.5px;
+  }
+  .toolbar{
+    flex:0 0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+  }
+  .toolbar .sep{
+    width:1px;
+    align-self:stretch;
+    background:var(--border);
+    margin:2px 2px;
+  }
+  .spacer{flex:1 1 auto;}
+  button, .btn, select{
+    font:inherit;
+    font-size:12.5px;
+    background:var(--btn-bg);
+    color:var(--text);
+    border:1px solid var(--btn-border);
+    border-radius:8px;
+    padding:6px 11px;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+    transition:background-color .12s ease, border-color .12s ease;
+  }
+  button:hover, .btn:hover{background:var(--btn-bg-hover);border-color:var(--border-strong);}
+  button:active{background:var(--btn-bg-hover);}
+  button:disabled{opacity:.5;cursor:default;}
+  button:focus-visible, .btn:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+  button.primary:hover{filter:brightness(1.08);}
+  .view-toggle{
+    display:inline-flex;
+    border:1px solid var(--btn-border);
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .view-toggle button{
+    border:none;
+    border-radius:0;
+    box-shadow:none;
+    background:var(--btn-bg);
+  }
+  .view-toggle button + button{border-left:1px solid var(--btn-border);}
+  .view-toggle button.active{background:var(--accent);color:var(--accent-text);}
+  .stepper{
+    display:inline-flex;
+    align-items:stretch;
+    border:1px solid var(--btn-border);
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .stepper button{
+    border:none;
+    border-radius:0;
+    box-shadow:none;
+    background:var(--btn-bg);
+    padding:6px 9px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  .stepper button + button{border-left:1px solid var(--btn-border);}
+  .stepper-label{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:2.4em;
+    padding:0 4px;
+    font-size:11.5px;
+    color:var(--text-dim);
+    border-left:1px solid var(--btn-border);
+    border-right:1px solid var(--btn-border);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  select{padding:6px 8px;}
+  .icon-btn{
+    width:32px;
+    height:32px;
+    padding:0;
+    justify-content:center;
+  }
+  .icon-btn svg{display:block;}
+  .icon-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+  .icon-btn.font-glyph{font-size:14px;font-weight:700;font-family:var(--content-font);}
+  .panels{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+  }
+  .panels .panel{
+    flex:1 1 0;
+    min-width:0;
+  }
+  .divider{
+    flex:0 0 14px;
+    margin:0 -3px;
+    position:relative;
+    cursor:col-resize;
+    touch-action:none;
+    z-index:1;
+  }
+  .divider::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:0;
+    bottom:0;
+    width:3px;
+    transform:translateX(-50%);
+    border-radius:3px;
+    background:var(--border);
+    transition:background-color .12s ease;
+  }
+  .divider::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:4px;
+    height:28px;
+    transform:translate(-50%,-50%);
+    border-radius:2px;
+    background:var(--border-strong);
+    opacity:0;
+    transition:opacity .12s ease;
+  }
+  .divider:hover::before, .divider:focus-visible::before{background:var(--accent);}
+  .divider:hover::after, .divider:focus-visible::after{opacity:1;}
+  .divider:focus-visible{outline:none;}
+  @media (max-width:820px){
+    .panels{flex-direction:column;}
+    .panels .panel{min-height:0;min-width:auto;}
+    .divider{
+      width:100%;
+      margin:-3px 0;
+      cursor:row-resize;
+    }
+    .divider::before{
+      left:0;
+      right:0;
+      top:50%;
+      bottom:auto;
+      width:auto;
+      height:3px;
+      transform:translateY(-50%);
+    }
+    .divider::after{
+      width:28px;
+      height:4px;
+    }
+  }
+  .panel{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    background:var(--panel-bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:var(--shadow-md);
+  }
+  .panel-header{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:7px 12px;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    border-bottom:1px solid var(--border);
+  }
+  .stats{font-weight:500;text-transform:none;letter-spacing:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;}
+  .text-edit{
+    border:none;
+    outline:none;
+    resize:none;
+    background:var(--input-bg);
+    color:var(--text);
+    font-family:var(--content-font);
+    font-size:12.5px;
+    line-height:1.55;
+    padding:12px;
+    tab-size:2;
+    width:100%;
+    box-sizing:border-box;
+  }
+  .text-edit::placeholder{color:var(--text-dim);opacity:1;}
+  #input{flex:1 1 auto;}
+  .output-edit{flex:1 1 auto;height:100%;}
+  .output{
+    flex:1 1 auto;
+    overflow:auto;
+    padding:10px 12px;
+    font-family:var(--content-font);
+    font-size:12.5px;
+  }
+  .output .placeholder{
+    color:var(--text-dim);
+    font-family:var(--content-font);
+  }
+  .output pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:inherit;}
+  .jv-row{white-space:normal;}
+  .jv-line{
+    display:flex;
+    align-items:flex-start;
+    gap:2px;
+    white-space:pre-wrap;
+    word-break:break-word;
+    padding:1px 0;
+    border-radius:4px;
+  }
+  .jv-line:hover{background:rgba(127,127,127,.08);}
+  .jv-toggle{
+    flex:0 0 auto;
+    width:16px;
+    height:18px;
+    padding:0;
+    border:none;
+    background:transparent;
+    box-shadow:none;
+    color:var(--text-dim);
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:transform .12s ease;
+  }
+  .jv-toggle::before{
+    content:"";
+    display:block;
+    width:0;
+    height:0;
+    border-style:solid;
+    border-width:4px 0 4px 6px;
+    border-color:transparent transparent transparent var(--text-dim);
+  }
+  .jv-toggle:hover::before{border-left-color:var(--accent);}
+  .jv-toggle[aria-expanded="true"]{transform:rotate(90deg);}
+  .jv-toggle:disabled{visibility:hidden;}
+  .jv-key{color:var(--key);}
+  .jv-index{color:var(--text-dim);}
+  .jv-colon{color:var(--punct);margin-right:4px;}
+  .jv-punc{color:var(--punct);}
+  .jv-comma{color:var(--punct);}
+  .jv-string{color:var(--string);}
+  .jv-number{color:var(--number);}
+  .jv-boolean{color:var(--boolean);}
+  .jv-null{color:var(--nullc);}
+  .jv-summary{color:var(--text-dim);margin:0 4px;font-style:italic;}
+  .jv-children{
+    margin-left:8px;
+    padding-left:9px;
+    border-left:1px dotted var(--guide);
+  }
+  .jv-more{
+    margin:2px 0 2px 25px;
+    font-size:11.5px;
+    padding:3px 8px;
+  }
+  .banner{
+    flex:0 0 auto;
+    border-radius:10px;
+    padding:8px 14px;
+    font-size:12.5px;
+    line-height:1.5;
+  }
+  .banner-error{
+    background:var(--error-bg);
+    border:1px solid var(--error-border);
+    color:var(--error-text);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    cursor:pointer;
+  }
+  .banner-warning{
+    background:var(--warning-bg);
+    border:1px solid var(--warning-border);
+    color:var(--warning-text);
+  }
+  .banner-info{
+    background:var(--info-bg);
+    border:1px solid var(--info-border);
+    color:var(--info-text);
+  }
+  footer{
+    flex:0 0 auto;
+    position:relative;
+    height:1.6em;
+    color:var(--text-dim);
+    font-size:11.5px;
+  }
+  footer a{
+    position:absolute;
+    left:50%;
+    top:0;
+    transform:translateX(-50%);
+    color:var(--text-dim);
+    text-decoration:underline;
+    text-underline-offset:2px;
+    white-space:nowrap;
+  }
+  footer a:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">{ }</span>
+      <div>
+        <h1>Pretty Pretty JSON</h1>
+        <p>Privacy preserving JSON prettifier · 100% client-side · No network requests · No cookies · No analytics</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button id="btnFormat" class="primary" type="button">Format</button>
+    <button id="btnMinify" type="button">Minify</button>
+    <div class="sep"></div>
+    <label for="indent" style="color:var(--text-dim);font-size:12.5px;">Indent</label>
+    <select id="indent">
+      <option value="2" selected>2 spaces</option>
+      <option value="4">4 spaces</option>
+      <option value="tab">Tab</option>
+    </select>
+    <div class="sep"></div>
+    <button id="btnClear" type="button">Clear</button>
+    <div class="spacer"></div>
+    <div class="view-toggle" role="tablist" aria-label="Preview mode">
+      <button type="button" data-view="tree" class="active" role="tab" aria-selected="true">Tree</button>
+      <button type="button" data-view="raw" role="tab" aria-selected="false">Raw</button>
+    </div>
+    <button id="btnEditPreview" class="icon-btn" type="button" aria-pressed="false" title="Edit preview directly"></button>
+    <button id="btnDepthMin" type="button">Collapse all</button>
+    <div class="stepper" role="group" aria-label="Expand/collapse tree by one level">
+      <button id="btnDepthDown" type="button" title="Collapse one level">−</button>
+      <span class="stepper-label" id="depthLabel" title="Current tree depth">0</span>
+      <button id="btnDepthUp" type="button" title="Expand one level">+</button>
+    </div>
+    <button id="btnDepthMax" type="button">Expand all</button>
+    <div class="sep"></div>
+    <button id="btnFont" class="icon-btn" type="button" title="Font selection applies to the INPUT and the PREVIEW boxes"></button>
+    <button id="btnTheme" class="icon-btn" type="button"></button>
+  </div>
+
+  <div id="notice" class="banner banner-info" hidden></div>
+  <div id="errorBanner" class="banner banner-error" hidden role="alert"></div>
+
+  <div class="panels">
+    <section class="panel" id="inputPanel">
+      <div class="panel-header">Input <span id="inputStats" class="stats"></span></div>
+      <textarea id="input" class="text-edit" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste or drag an ugly JSON"></textarea>
+    </section>
+    <div class="divider" id="panelDivider" role="separator" aria-orientation="vertical" aria-label="Resize input and preview panels" tabindex="0"></div>
+    <section class="panel" id="previewPanel">
+      <div class="panel-header">Preview <span id="outputStats" class="stats"></span></div>
+      <div id="output" class="output" aria-live="polite">
+        <div class="placeholder">A pretty pretty JSON will show up here</div>
+      </div>
+    </section>
+  </div>
+
+  <footer><a id="footerLink" href="https://github.com/alpomar/pretty-pretty-json" target="_blank" rel="noopener">See the code in GitHub</a></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var inputEl = document.getElementById('input');
+  var outputEl = document.getElementById('output');
+  var inputStatsEl = document.getElementById('inputStats');
+  var outputStatsEl = document.getElementById('outputStats');
+  var errorBannerEl = document.getElementById('errorBanner');
+  var noticeEl = document.getElementById('notice');
+  var indentSel = document.getElementById('indent');
+
+  var BATCH_SIZE = 200;
+  var AUTO_EXPAND_CHAR_LIMIT = 20000;
+  var LARGE_INPUT_WARN = 3000000; // ~3MB
+
+  var MAX_LENIENT_VALUES = 5000;
+
+  var state = {
+    ok:false,
+    value:undefined,
+    view:'tree',
+    lastErrorPos:null,
+    editPreview:false,
+    forceExpand:false
+  };
+
+  // ---------- helpers ----------
+
+  function el(tag, className, text){
+    var e = document.createElement(tag);
+    if(className) e.className = className;
+    if(text !== undefined && text !== null) e.textContent = String(text);
+    return e;
+  }
+
+  function formatBytes(n){
+    if(n < 1024) return n + ' B';
+    if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+    return (n/(1024*1024)).toFixed(2) + ' MB';
+  }
+
+  function currentIndent(){
+    var v = indentSel.value;
+    if(v === 'tab') return '\t';
+    return Number(v);
+  }
+
+  function positionToLineCol(text, pos){
+    var head = text.slice(0, pos);
+    var lines = head.split('\n');
+    return { line: lines.length, col: lines[lines.length-1].length + 1 };
+  }
+
+  function valueType(v){
+    if(v === null) return 'null';
+    if(Array.isArray(v)) return 'array';
+    return typeof v; // object, string, number, boolean
+  }
+
+  // ---------- parsing / top-level render ----------
+
+  var debounceTimer = null;
+  function scheduleRender(){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(renderAll, 180);
+  }
+
+  function tryStrictParse(text){
+    try{ return { ok:true, value: JSON.parse(text) }; }
+    catch(err){ return { ok:false, err:err }; }
+  }
+
+  function stripTrailingCommas(text){
+    return text.replace(/,(\s*[}\]])/g, '$1');
+  }
+
+  // Scans `text` for one or more consecutive JSON values (optionally separated
+  // by whitespace/newlines), using JSON.parse's own error position to find
+  // where each value ends. This is what lets JSON Lines / concatenated JSON
+  // objects still get parsed and previewed, instead of just failing outright.
+  function scanJsonValues(text){
+    var values = [];
+    var offset = 0;
+    var remaining = text;
+    var tailError = null;
+
+    while(values.length < MAX_LENIENT_VALUES){
+      var leading = remaining.match(/^\s+/);
+      if(leading){
+        offset += leading[0].length;
+        remaining = remaining.slice(leading[0].length);
+      }
+      if(remaining.length === 0) break;
+
+      var whole = tryStrictParse(remaining);
+      if(whole.ok){
+        values.push(whole.value);
+        offset += remaining.length;
+        remaining = '';
+        break;
+      }
+
+      var msg = whole.err.message;
+      var m = /position (\d+)/.exec(msg);
+      if(!m){ tailError = { message: msg, absPos: offset }; break; }
+
+      var pos = Number(m[1]);
+      if(pos <= 0){ tailError = { message: msg, absPos: offset }; break; }
+
+      var candidate = remaining.slice(0, pos);
+      var candidateParse = tryStrictParse(candidate);
+      if(!candidateParse.ok){
+        var cleaned = stripTrailingCommas(candidate);
+        if(cleaned !== candidate) candidateParse = tryStrictParse(cleaned);
+      }
+
+      if(candidateParse.ok){
+        values.push(candidateParse.value);
+        offset += pos;
+        remaining = remaining.slice(pos);
+        continue;
+      }
+
+      tailError = { message: msg, absPos: offset + pos };
+      break;
+    }
+
+    if(tailError){
+      var lc = positionToLineCol(text, tailError.absPos);
+      tailError.line = lc.line;
+      tailError.col = lc.col;
+    }
+    return { values: values, tailError: tailError };
+  }
+
+  // Tries a strict parse first; falls back to lenient recovery (trailing-comma
+  // fix, then JSON Lines / concatenated-JSON scanning) so paste-in data that's
+  // "almost JSON" still gets a useful, clearly-labeled preview.
+  function parseLenient(text){
+    var strict = tryStrictParse(text);
+    if(strict.ok) return { mode:'strict', value: strict.value, notes:[] };
+
+    var noTrailingCommas = stripTrailingCommas(text);
+    if(noTrailingCommas !== text){
+      var fixed = tryStrictParse(noTrailingCommas);
+      if(fixed.ok) return { mode:'fixed', value: fixed.value, notes:['removed trailing comma(s)'] };
+    }
+
+    var scanned = scanJsonValues(text);
+    if(scanned.values.length > 0){
+      var notes = [];
+      if(scanned.values.length > 1){
+        notes.push(scanned.values.length + ' separate JSON values were found (JSON Lines / concatenated JSON) and wrapped into an array for preview');
+      }
+      if(scanned.tailError){
+        notes.push('stopped after ' + scanned.values.length + (scanned.values.length===1?' value':' values') + ': ' + scanned.tailError.message + ' (line ' + scanned.tailError.line + ', column ' + scanned.tailError.col + ')');
+      }
+      return {
+        mode:'lenient',
+        value: scanned.values.length === 1 ? scanned.values[0] : scanned.values,
+        notes: notes
+      };
+    }
+
+    return { mode:'invalid', error: strict.err };
+  }
+
+  function renderAll(){
+    var text = inputEl.value;
+    inputStatsEl.textContent = text ? (text.length.toLocaleString() + ' chars · ' + formatBytes(new Blob([text]).size)) : '';
+
+    if(text.trim() === ''){
+      state.ok = false;
+      state.value = undefined;
+      state.leniencyNotice = null;
+      hideError();
+      hideNotice();
+      outputStatsEl.textContent = '';
+      if(!previewEditFocused()){
+        outputEl.innerHTML = '';
+        outputEl.appendChild(el('div','placeholder','A pretty pretty JSON will show up here'));
+      }
+      refreshDepthLabel();
+      return;
+    }
+
+    var result = parseLenient(text);
+
+    if(result.mode === 'invalid'){
+      state.ok = false;
+      state.value = undefined;
+      state.leniencyNotice = null;
+      hideNotice();
+      showError(result.error, text);
+      outputStatsEl.textContent = '';
+      if(!previewEditFocused()){
+        outputEl.innerHTML = '';
+        outputEl.appendChild(el('div','placeholder','Fix the error below to see a preview.'));
+      }
+      refreshDepthLabel();
+      return;
+    }
+
+    state.ok = true;
+    state.value = result.value;
+    hideError();
+
+    if(result.mode === 'strict'){
+      state.leniencyNotice = null;
+    } else {
+      state.leniencyNotice = 'Not strictly valid JSON - ' + result.notes.join('; ') + '. Showing a best-effort prettified preview below.';
+    }
+
+    renderOutput();
+  }
+
+  function previewEditFocused(){
+    return !!(previewEditEl && document.activeElement === previewEditEl);
+  }
+
+  function showError(err, text){
+    var msg = err.message || String(err);
+    var m = /position (\d+)/.exec(msg);
+    state.lastErrorPos = null;
+    if(m){
+      var pos = Number(m[1]);
+      var lc = positionToLineCol(text, pos);
+      state.lastErrorPos = pos;
+      if(!/line \d+/i.test(msg)){
+        msg += ' (line ' + lc.line + ', column ' + lc.col + ')';
+      }
+    }
+    errorBannerEl.textContent = 'Invalid JSON: ' + msg + (state.lastErrorPos !== null ? '  - click to jump to it' : '');
+    errorBannerEl.hidden = false;
+  }
+  function hideError(){ errorBannerEl.hidden = true; errorBannerEl.textContent=''; }
+  function showNotice(text, variant){
+    noticeEl.className = 'banner banner-' + (variant || 'info');
+    noticeEl.textContent = text;
+    noticeEl.hidden = false;
+  }
+  function hideNotice(){ noticeEl.hidden = true; noticeEl.textContent=''; }
+
+  errorBannerEl.addEventListener('click', function(){
+    if(state.lastErrorPos === null) return;
+    var text = inputEl.value;
+    var lc = positionToLineCol(text, state.lastErrorPos);
+    inputEl.focus();
+    inputEl.setSelectionRange(state.lastErrorPos, Math.min(state.lastErrorPos+1, text.length));
+    var before = lc.line;
+    inputEl.scrollTop = Math.max(0, (before-3) * 18);
+  });
+
+  // Re-renders the preview, preserving the current tree depth and scroll
+  // position across edits so retyping a character doesn't reset the reader's
+  // place (only the very first render for a document picks a default depth).
+  function renderOutput(){
+    var prevScrollTop = outputEl.scrollTop;
+
+    var raw = JSON.stringify(state.value);
+    outputStatsEl.textContent = describeRoot(state.value) + ' · ' + formatBytes(new Blob([raw]).size);
+
+    if(state.leniencyNotice){
+      showNotice(state.leniencyNotice, 'warning');
+    } else if(raw.length > LARGE_INPUT_WARN){
+      showNotice('Large document (' + formatBytes(new Blob([raw]).size) + '). Rendering is lazy and batched so the page stays responsive; deeply nested sections start collapsed.', 'info');
+    } else {
+      hideNotice();
+    }
+
+    state.maxDepth = computeMaxDepth(state.value, 0);
+    // A huge document always starts collapsed, even if a prior (smaller)
+    // document left the depth expanded - otherwise inheriting a nonzero
+    // depth could force-render every batch of a massive tree synchronously.
+    var isLarge = raw.length > LARGE_INPUT_WARN;
+    if(state.forceExpand && !isLarge){
+      // Freshly pasted or dropped content defaults to fully expanded.
+      state.level = state.maxDepth;
+    } else if(state.level == null || isLarge){
+      var autoExpand = raw.length <= AUTO_EXPAND_CHAR_LIMIT;
+      state.level = autoExpand ? Math.min(6, state.maxDepth) : 0;
+    } else {
+      state.level = Math.max(0, Math.min(state.maxDepth, state.level));
+    }
+    state.forceExpand = false;
+
+    if(state.view === 'tree'){
+      outputEl.innerHTML = '';
+      var root = buildNode(null, state.value, true, 0);
+      outputEl.appendChild(root);
+      walkToLevel(root, 0, state.level);
+    } else if(state.editPreview){
+      var ta = getOrCreatePreviewEdit();
+      if(outputEl.firstElementChild !== ta){
+        outputEl.innerHTML = '';
+        outputEl.appendChild(ta);
+      }
+      if(document.activeElement !== ta){
+        ta.value = JSON.stringify(state.value, null, currentIndent());
+      }
+    } else {
+      outputEl.innerHTML = '';
+      outputEl.appendChild(buildRaw(state.value));
+    }
+    refreshDepthLabel();
+    outputEl.scrollTop = prevScrollTop;
+  }
+
+  var previewEditEl = null;
+  function getOrCreatePreviewEdit(){
+    if(!previewEditEl){
+      previewEditEl = document.createElement('textarea');
+      previewEditEl.id = 'previewEdit';
+      previewEditEl.className = 'text-edit output-edit';
+      previewEditEl.spellcheck = false;
+      previewEditEl.setAttribute('autocomplete','off');
+      previewEditEl.setAttribute('autocapitalize','off');
+      previewEditEl.addEventListener('input', function(){
+        inputEl.value = previewEditEl.value;
+        scheduleRender();
+      });
+    }
+    return previewEditEl;
+  }
+
+  function computeMaxDepth(v, depth){
+    if(depth > 1000 || !v || typeof v !== 'object') return depth;
+    var children = Array.isArray(v) ? v : Object.values(v);
+    var max = depth;
+    for(var i=0;i<children.length;i++){
+      var d = computeMaxDepth(children[i], depth+1);
+      if(d > max) max = d;
+      if(max > 1000) break;
+    }
+    return max;
+  }
+
+  function describeRoot(v){
+    var t = valueType(v);
+    if(t === 'object'){
+      var k = Object.keys(v).length;
+      return 'Object · ' + k + (k===1?' key':' keys');
+    }
+    if(t === 'array'){
+      return 'Array · ' + v.length + (v.length===1?' item':' items');
+    }
+    return t.charAt(0).toUpperCase()+t.slice(1);
+  }
+
+  // ---------- tree view ----------
+
+  function appendPrimitiveValue(container, value){
+    var t = valueType(value);
+    if(t === 'string'){
+      container.appendChild(el('span','jv-string', JSON.stringify(value)));
+    } else if(t === 'number'){
+      container.appendChild(el('span','jv-number', String(value)));
+    } else if(t === 'boolean'){
+      container.appendChild(el('span','jv-boolean', String(value)));
+    } else if(t === 'null'){
+      container.appendChild(el('span','jv-null','null'));
+    }
+  }
+
+  // key: null (no key / root), string (object key), or a number (array index)
+  function buildNode(key, value, isLast, depth){
+    var t = valueType(value);
+    var wrap = el('div','jv-node');
+    var line = el('div','jv-line');
+
+    var isContainer = (t === 'object' || t === 'array');
+    var entries = null, count = 0;
+    if(isContainer){
+      if(t === 'array'){
+        entries = value.map(function(v,i){ return [i, v]; });
+      } else {
+        entries = Object.keys(value).map(function(k){ return [k, value[k]]; });
+      }
+      count = entries.length;
+    }
+
+    var toggle = el('button','jv-toggle');
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded','false');
+    if(!isContainer || count===0){
+      toggle.disabled = true;
+    }
+    line.appendChild(toggle);
+
+    function appendKey(){
+      if(key === null) return;
+      if(typeof key === 'number'){
+        line.appendChild(el('span','jv-index', String(key)));
+      } else {
+        line.appendChild(el('span','jv-key', JSON.stringify(key)));
+      }
+      line.appendChild(el('span','jv-colon', ':'));
+    }
+    appendKey();
+
+    var trailingComma = isLast ? '' : ',';
+
+    if(!isContainer){
+      appendPrimitiveValue(line, value);
+      if(trailingComma) line.appendChild(el('span','jv-comma', trailingComma));
+      wrap.appendChild(line);
+      return wrap;
+    }
+
+    var openBrace = t === 'array' ? '[' : '{';
+    var closeBrace = t === 'array' ? ']' : '}';
+    line.appendChild(el('span','jv-punc', openBrace));
+
+    var summary = el('span','jv-summary', count + (t==='array' ? (count===1?' item':' items') : (count===1?' key':' keys')));
+    var closeInline = el('span','jv-punc', closeBrace);
+    var closeInlineComma = el('span','jv-comma', trailingComma);
+    line.appendChild(summary);
+    line.appendChild(closeInline);
+    line.appendChild(closeInlineComma);
+
+    var childrenEl = el('div','jv-children');
+    childrenEl.hidden = true;
+
+    var closeLine = el('div','jv-line');
+    closeLine.hidden = true;
+    var closeSpacer = el('span','jv-toggle','');
+    closeLine.appendChild(closeSpacer);
+    closeLine.appendChild(el('span','jv-punc', closeBrace));
+    closeLine.appendChild(el('span','jv-comma', trailingComma));
+
+    var rendered = 0;
+    var moreBtn = null;
+
+    function renderBatch(){
+      var end = Math.min(rendered + BATCH_SIZE, count);
+      for(var i = rendered; i < end; i++){
+        var pair = entries[i];
+        var childKey = pair[0];
+        var childVal = pair[1];
+        var isLastChild = (i === count - 1);
+        childrenEl.appendChild(buildNode(childKey, childVal, isLastChild, depth+1));
+      }
+      rendered = end;
+      if(moreBtn){ moreBtn.remove(); moreBtn = null; }
+      if(rendered < count){
+        moreBtn = el('button','btn jv-more', 'Show ' + Math.min(BATCH_SIZE, count-rendered) + ' more of ' + (count-rendered) + ' remaining');
+        moreBtn.type = 'button';
+        moreBtn.addEventListener('click', renderBatch);
+        childrenEl.appendChild(moreBtn);
+      }
+    }
+
+    var populated = false;
+    function ensurePopulated(){
+      if(!populated){ populated = true; renderBatch(); }
+    }
+
+    function setExpanded(expanded){
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      if(expanded){
+        ensurePopulated();
+        childrenEl.hidden = false;
+        closeLine.hidden = false;
+        summary.hidden = true;
+        closeInline.hidden = true;
+        closeInlineComma.hidden = true;
+      } else {
+        childrenEl.hidden = true;
+        closeLine.hidden = true;
+        summary.hidden = false;
+        closeInline.hidden = false;
+        closeInlineComma.hidden = false;
+      }
+    }
+    wrap._setExpanded = setExpanded;
+    wrap._isContainer = true;
+
+    toggle.addEventListener('click', function(){
+      var expanded = toggle.getAttribute('aria-expanded') === 'true';
+      setExpanded(!expanded);
+    });
+
+    wrap.appendChild(line);
+    wrap.appendChild(childrenEl);
+    wrap.appendChild(closeLine);
+
+    return wrap;
+  }
+
+  // Fully renders any batched "show N more" children of a node so it can be
+  // recursed into (needed before expanding a node past its first batch).
+  function fullyPopulate(node){
+    var children = node.querySelector(':scope > .jv-children');
+    var guard = 0;
+    while(children){
+      var more = children.querySelector(':scope > .jv-more');
+      if(!more || guard > 2000) break;
+      more.click();
+      guard++;
+    }
+  }
+
+  // Expands every container at depth < level, collapses the rest, so the
+  // whole tree sits at a single uniform depth regardless of prior manual
+  // toggling. Level 0 = only the root line; level 1 = root's children
+  // visible; etc.
+  function walkToLevel(node, depth, level){
+    if(!node._isContainer) return;
+    var shouldExpand = depth < level;
+    node._setExpanded(shouldExpand);
+    if(shouldExpand){
+      fullyPopulate(node);
+      var kids = node.querySelectorAll(':scope > .jv-children > .jv-node');
+      kids.forEach(function(k){ walkToLevel(k, depth+1, level); });
+    }
+  }
+
+  var depthLabelEl = document.getElementById('depthLabel');
+  function refreshDepthLabel(){
+    depthLabelEl.textContent = (state.ok && state.view === 'tree' && state.level != null) ? String(state.level) : '0';
+  }
+
+  function setLevel(level){
+    if(!state.ok || state.view !== 'tree') return;
+    var root = outputEl.firstElementChild;
+    if(!root) return;
+    state.level = Math.max(0, Math.min(state.maxDepth, level));
+    walkToLevel(root, 0, state.level);
+    refreshDepthLabel();
+  }
+
+  document.getElementById('btnDepthMax').addEventListener('click', function(){
+    setLevel(state.maxDepth);
+  });
+  document.getElementById('btnDepthMin').addEventListener('click', function(){
+    setLevel(0);
+  });
+  document.getElementById('btnDepthUp').addEventListener('click', function(){
+    setLevel((state.level || 0) + 1);
+  });
+  document.getElementById('btnDepthDown').addEventListener('click', function(){
+    setLevel((state.level || 0) - 1);
+  });
+
+  // ---------- raw view ----------
+
+  function buildRaw(value){
+    var pre = el('pre');
+    walkRaw(value, 0, true, pre);
+    return pre;
+  }
+
+  function indentUnit(){
+    return indentSel.value === 'tab' ? '\t' : ' '.repeat(Number(indentSel.value) || 2);
+  }
+  function indentSpan(depth){
+    return indentUnit().repeat(depth);
+  }
+
+  function walkRaw(value, depth, isLast, pre){
+    var t = valueType(value);
+    var comma = isLast ? '' : ',';
+
+    if(t !== 'object' && t !== 'array'){
+      appendPrimitiveValue(pre, value);
+      pre.appendChild(document.createTextNode(comma + '\n'));
+      return;
+    }
+
+    var isArray = t === 'array';
+    var entries = isArray ? value.map(function(v,i){return [i,v];}) : Object.keys(value).map(function(k){return [k,value[k]];});
+    var open = isArray ? '[' : '{';
+    var close = isArray ? ']' : '}';
+
+    if(entries.length === 0){
+      pre.appendChild(document.createTextNode(open + close + comma + '\n'));
+      return;
+    }
+
+    pre.appendChild(document.createTextNode(open + '\n'));
+    for(var i=0;i<entries.length;i++){
+      pre.appendChild(document.createTextNode(indentSpan(depth+1)));
+      if(!isArray){
+        pre.appendChild(el('span','jv-key', JSON.stringify(entries[i][0])));
+        pre.appendChild(document.createTextNode(': '));
+      }
+      walkRawInline(entries[i][1], depth+1, i === entries.length-1, pre);
+    }
+    pre.appendChild(document.createTextNode(indentSpan(depth) + close + comma + '\n'));
+  }
+
+  function walkRawInline(value, depth, isLast, pre){
+    var t = valueType(value);
+    if(t !== 'object' && t !== 'array'){
+      appendPrimitiveValue(pre, value);
+      pre.appendChild(document.createTextNode((isLast?'':',') + '\n'));
+      return;
+    }
+    walkRaw(value, depth, isLast, pre);
+  }
+
+  // ---------- toolbar actions ----------
+
+  document.getElementById('btnFormat').addEventListener('click', function(){
+    if(!state.ok) return;
+    inputEl.value = JSON.stringify(state.value, null, currentIndent());
+    renderAll();
+  });
+  document.getElementById('btnMinify').addEventListener('click', function(){
+    if(!state.ok) return;
+    inputEl.value = JSON.stringify(state.value);
+    renderAll();
+  });
+  document.getElementById('btnClear').addEventListener('click', function(){
+    inputEl.value = '';
+    inputEl.focus();
+    renderAll();
+  });
+  indentSel.addEventListener('change', function(){
+    if(state.ok) renderOutput();
+  });
+
+  // A paste or a dropped file is "new content" rather than an in-place edit,
+  // so the preview defaults to fully expanded for it (unlike normal typing,
+  // which preserves whatever depth the user already had - see renderOutput).
+  inputEl.addEventListener('paste', function(){
+    state.forceExpand = true;
+  });
+
+  inputEl.addEventListener('dragover', function(e){ e.preventDefault(); });
+  inputEl.addEventListener('drop', function(e){
+    e.preventDefault();
+    var file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      inputEl.value = String(reader.result || '');
+      state.forceExpand = true;
+      renderAll();
+    };
+    reader.readAsText(file);
+  });
+
+  var viewButtons = document.querySelectorAll('.view-toggle button');
+  function setView(view){
+    viewButtons.forEach(function(b){
+      var active = b.getAttribute('data-view') === view;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', String(active));
+    });
+    state.view = view;
+    if(view === 'tree' && state.editPreview){
+      state.editPreview = false;
+      btnEditPreview.setAttribute('aria-pressed','false');
+      btnEditPreview.title = 'Edit preview directly';
+    }
+    if(state.ok) renderOutput();
+  }
+  viewButtons.forEach(function(btn){
+    btn.addEventListener('click', function(){ setView(btn.getAttribute('data-view')); });
+  });
+
+  var btnEditPreview = document.getElementById('btnEditPreview');
+  btnEditPreview.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>';
+  btnEditPreview.addEventListener('click', function(){
+    state.editPreview = !state.editPreview;
+    btnEditPreview.setAttribute('aria-pressed', String(state.editPreview));
+    btnEditPreview.title = state.editPreview ? 'Editing preview (click to stop)' : 'Edit preview directly';
+    if(state.editPreview && state.view !== 'raw'){
+      setView('raw');
+    } else if(state.ok){
+      renderOutput();
+    }
+  });
+
+  // ---------- theme ----------
+  // Only two themes exist, light and dark. The very first visit picks
+  // whichever matches the OS/browser preference; after that, the explicit
+  // choice (from clicking the toggle) is remembered instead.
+
+  var btnTheme = document.getElementById('btnTheme');
+  var THEME_KEY = 'ppj-theme';
+  var THEME_ICONS = {
+    light: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>',
+    dark: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>'
+  };
+  var currentTheme = 'light';
+  function applyTheme(mode){
+    currentTheme = mode;
+    document.documentElement.setAttribute('data-theme', mode);
+    var label = mode.charAt(0).toUpperCase() + mode.slice(1);
+    btnTheme.innerHTML = THEME_ICONS[mode];
+    btnTheme.title = 'Theme: ' + label + ' (click to switch to ' + (mode === 'light' ? 'Dark' : 'Light') + ')';
+    btnTheme.setAttribute('aria-label', 'Theme: ' + label + '. Click to switch theme.');
+  }
+  var storedTheme = null;
+  try{ storedTheme = localStorage.getItem(THEME_KEY); }catch(e){}
+  if(storedTheme !== 'light' && storedTheme !== 'dark'){
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    storedTheme = prefersDark ? 'dark' : 'light';
+  }
+  applyTheme(storedTheme);
+  btnTheme.addEventListener('click', function(){
+    applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+    try{ localStorage.setItem(THEME_KEY, currentTheme); }catch(e){}
+  });
+
+  // ---------- font ----------
+
+  var btnFont = document.getElementById('btnFont');
+  var FONT_KEY = 'ppj-font';
+  var FONTS = ['mono','sans','serif'];
+  var FONT_LABELS = { mono:'Monospace', sans:'Sans-serif', serif:'Serif' };
+  var currentFont = 'mono';
+  function applyFont(font){
+    currentFont = font;
+    document.documentElement.style.setProperty('--content-font', 'var(--font-' + font + ')');
+    btnFont.textContent = 'Aa';
+    btnFont.classList.add('font-glyph');
+    btnFont.style.fontFamily = 'var(--font-' + font + ')';
+    var label = FONT_LABELS[font];
+    var nextLabel = FONT_LABELS[FONTS[(FONTS.indexOf(font)+1) % FONTS.length]];
+    btnFont.title = 'Font: ' + label + ' (click for ' + nextLabel + '). Font selection applies to the input and the preview boxes.';
+    btnFont.setAttribute('aria-label', 'Font: ' + label + '. Click to change font. Applies to both the input and the preview boxes.');
+  }
+  var storedFont = null;
+  try{ storedFont = localStorage.getItem(FONT_KEY); }catch(e){}
+  applyFont(FONTS.indexOf(storedFont) !== -1 ? storedFont : 'mono');
+  btnFont.addEventListener('click', function(){
+    applyFont(FONTS[(FONTS.indexOf(currentFont)+1) % FONTS.length]);
+    try{ localStorage.setItem(FONT_KEY, currentFont); }catch(e){}
+  });
+
+  // ---------- resizable split ----------
+
+  var panelsEl = document.querySelector('.panels');
+  var inputPanelEl = document.getElementById('inputPanel');
+  var previewPanelEl = document.getElementById('previewPanel');
+  var dividerEl = document.getElementById('panelDivider');
+  var footerLinkEl = document.getElementById('footerLink');
+  var SPLIT_KEY = 'ppj-split-pct';
+  var splitPct = 50;
+  try{
+    var storedSplit = parseFloat(localStorage.getItem(SPLIT_KEY));
+    if(!isNaN(storedSplit) && storedSplit >= 15 && storedSplit <= 85) splitPct = storedSplit;
+  }catch(e){}
+
+  // Below this width the panels stack vertically, so the divider becomes a
+  // horizontal bar you drag up/down instead of a vertical one you drag
+  // left/right - must match the breakpoint in the @media rule above.
+  var NARROW_QUERY = window.matchMedia('(max-width: 820px)');
+  function isNarrow(){ return NARROW_QUERY.matches; }
+
+  // Keeps the footer link under the actual divider position rather than the
+  // page's true center, so it stays visually anchored to the split even when
+  // the split isn't 50/50 (otherwise the gap between "page center" and
+  // "where the divider is" grows in raw pixels as the window widens).
+  function updateFooterAlignment(){
+    if(isNarrow()){
+      footerLinkEl.style.left = '50%';
+      return;
+    }
+    var panelsRect = panelsEl.getBoundingClientRect();
+    if(panelsRect.width === 0) return;
+    var dividerRect = dividerEl.getBoundingClientRect();
+    var fraction = ((dividerRect.left + dividerRect.width / 2) - panelsRect.left) / panelsRect.width * 100;
+    footerLinkEl.style.left = fraction + '%';
+  }
+
+  function applySplit(pct){
+    splitPct = Math.max(15, Math.min(85, pct));
+    inputPanelEl.style.flex = '0 0 ' + splitPct + '%';
+    previewPanelEl.style.flex = '1 1 auto';
+    updateFooterAlignment();
+  }
+  applySplit(splitPct);
+
+  function persistSplit(){
+    try{ localStorage.setItem(SPLIT_KEY, String(splitPct)); }catch(e){}
+  }
+
+  function updateDividerOrientation(){
+    dividerEl.setAttribute('aria-orientation', isNarrow() ? 'horizontal' : 'vertical');
+    updateFooterAlignment();
+  }
+  updateDividerOrientation();
+  if(NARROW_QUERY.addEventListener) NARROW_QUERY.addEventListener('change', updateDividerOrientation);
+  window.addEventListener('resize', updateFooterAlignment);
+
+  var dragging = false;
+  dividerEl.addEventListener('pointerdown', function(e){
+    dragging = true;
+    dividerEl.setPointerCapture(e.pointerId);
+    document.body.style.userSelect = 'none';
+  });
+  dividerEl.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    var rect = panelsEl.getBoundingClientRect();
+    var pct = isNarrow()
+      ? ((e.clientY - rect.top) / rect.height) * 100
+      : ((e.clientX - rect.left) / rect.width) * 100;
+    applySplit(pct);
+  });
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    document.body.style.userSelect = '';
+    persistSplit();
+  }
+  dividerEl.addEventListener('pointerup', endDrag);
+  dividerEl.addEventListener('pointercancel', endDrag);
+  dividerEl.addEventListener('dblclick', function(){
+    applySplit(50);
+    persistSplit();
+  });
+  dividerEl.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ applySplit(splitPct - 2); persistSplit(); e.preventDefault(); }
+    else if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ applySplit(splitPct + 2); persistSplit(); e.preventDefault(); }
+    else if(e.key === 'Home'){ applySplit(15); persistSplit(); e.preventDefault(); }
+    else if(e.key === 'End'){ applySplit(85); persistSplit(); e.preventDefault(); }
+  });
+
+  // ---------- init ----------
+
+  inputEl.addEventListener('input', scheduleRender);
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "pretty-pretty-json",
+  "private": true,
+  "description": "Regression tests for the Pretty Pretty JSON static site. Not required to run the site itself.",
+  "scripts": {
+    "test": "node tests/pretty-pretty-json.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
