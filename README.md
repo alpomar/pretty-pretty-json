@@ -1,5 +1,7 @@
 # Pretty Pretty JSON
 
+**[Try it live](https://pretty-pretty-json.pages.dev/)**
+
 A single-file, privacy-first JSON prettifier & JWT decoder. Paste unformatted
 JSON (or a JWT) on the left, get a clean, color-coded, collapsible tree on
 the right.
