@@ -475,7 +475,7 @@
       <span class="brand-mark" aria-hidden="true">{ }</span>
       <div>
         <h1>Pretty Pretty JSON</h1>
-        <p>Privacy preserving JSON prettifier · 100% client-side · No network requests · No cookies · No analytics</p>
+        <p>Privacy-first JSON prettifier &amp; JWT decoder · 100% client-side · No network requests · No cookies · No analytics</p>
       </div>
     </div>
   </header>
@@ -516,7 +516,7 @@
   <div class="panels">
     <section class="panel" id="inputPanel">
       <div class="panel-header">Input <span id="inputStats" class="stats"></span></div>
-      <textarea id="input" class="text-edit" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste or drag an ugly JSON"></textarea>
+      <textarea id="input" class="text-edit" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste or drag an ugly JWT/JSON"></textarea>
     </section>
     <div class="divider" id="panelDivider" role="separator" aria-orientation="vertical" aria-label="Resize input and preview panels" tabindex="0"></div>
     <section class="panel" id="previewPanel">
@@ -527,7 +527,7 @@
     </section>
   </div>
 
-  <footer><a id="footerLink" href="https://github.com/alpomar/pretty-pretty-json" target="_blank" rel="noopener">See the code in GitHub</a></footer>
+  <footer><a id="footerLink" href="https://github.com/alpomar/pretty-pretty-json" target="_blank" rel="noopener">See the code on GitHub</a></footer>
 </div>
 
 <script>
@@ -666,12 +666,63 @@
     return { values: values, tailError: tailError };
   }
 
-  // Tries a strict parse first; falls back to lenient recovery (trailing-comma
-  // fix, then JSON Lines / concatenated-JSON scanning) so paste-in data that's
-  // "almost JSON" still gets a useful, clearly-labeled preview.
+  // Decodes a JWT's header/payload (base64url JSON) entirely client-side -
+  // no verification, no network call, just turning it into readable JSON the
+  // same way the rest of this tool turns any other "ugly" text into a tree.
+  function base64UrlDecode(str){
+    var b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    while(b64.length % 4) b64 += '=';
+    var binary = atob(b64);
+    var bytes = new Uint8Array(binary.length);
+    for(var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  function tryDecodeJwt(text){
+    var m = /^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]*)$/.exec(text.trim());
+    if(!m) return null;
+    try{
+      return {
+        header: JSON.parse(base64UrlDecode(m[1])),
+        payload: JSON.parse(base64UrlDecode(m[2])),
+        signature: m[3]
+      };
+    }catch(e){
+      return null;
+    }
+  }
+
+  function describeJwt(jwt){
+    var notes = [];
+    if(jwt.header && jwt.header.alg) notes.push('alg: ' + jwt.header.alg);
+    if(jwt.header && jwt.header.typ) notes.push('typ: ' + jwt.header.typ);
+    ['iat','nbf','exp'].forEach(function(claim){
+      var v = jwt.payload && jwt.payload[claim];
+      if(typeof v === 'number' && isFinite(v)){
+        var iso = new Date(v * 1000).toISOString();
+        var extra = claim === 'exp' ? (v * 1000 < Date.now() ? ' (expired)' : ' (not expired)') : '';
+        notes.push(claim + ': ' + iso + extra);
+      }
+    });
+    return notes;
+  }
+
+  // Tries a strict parse first; falls back to lenient recovery (JWT decoding,
+  // trailing-comma fix, then JSON Lines / concatenated-JSON scanning) so
+  // paste-in data that's "almost JSON" still gets a useful, clearly-labeled
+  // preview.
   function parseLenient(text){
     var strict = tryStrictParse(text);
     if(strict.ok) return { mode:'strict', value: strict.value, notes:[] };
+
+    var jwt = tryDecodeJwt(text);
+    if(jwt){
+      return {
+        mode:'jwt',
+        value: { header: jwt.header, payload: jwt.payload, signature: jwt.signature },
+        notes: describeJwt(jwt)
+      };
+    }
 
     var noTrailingCommas = stripTrailingCommas(text);
     if(noTrailingCommas !== text){
@@ -740,8 +791,13 @@
 
     if(result.mode === 'strict'){
       state.leniencyNotice = null;
+      state.leniencyVariant = 'warning';
+    } else if(result.mode === 'jwt'){
+      state.leniencyNotice = 'Decoded JWT - ' + result.notes.join('; ') + '. Decoded locally; signature not verified.';
+      state.leniencyVariant = 'info';
     } else {
       state.leniencyNotice = 'Not strictly valid JSON - ' + result.notes.join('; ') + '. Showing a best-effort prettified preview below.';
+      state.leniencyVariant = 'warning';
     }
 
     renderOutput();
@@ -794,7 +850,7 @@
     outputStatsEl.textContent = describeRoot(state.value) + ' · ' + formatBytes(new Blob([raw]).size);
 
     if(state.leniencyNotice){
-      showNotice(state.leniencyNotice, 'warning');
+      showNotice(state.leniencyNotice, state.leniencyVariant || 'warning');
     } else if(raw.length > LARGE_INPUT_WARN){
       showNotice('Large document (' + formatBytes(new Blob([raw]).size) + '). Rendering is lazy and batched so the page stays responsive; deeply nested sections start collapsed.', 'info');
     } else {

@@ -17,6 +17,13 @@ const FILE_URL = 'file://' + path.resolve(__dirname, '..', 'public', 'index.html
 const tests = [];
 function test(name, fn) { tests.push({ name, fn }); }
 
+function b64url(obj) {
+  return Buffer.from(JSON.stringify(obj)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function makeJwt(header, payload, signature) {
+  return b64url(header) + '.' + b64url(payload) + '.' + (signature === undefined ? 'sig' : signature);
+}
+
 async function freshPage(browser) {
   const page = await browser.newPage();
   const errors = [];
@@ -488,6 +495,77 @@ test('switching to Tree view turns off edit-preview mode', async (page) => {
   await page.click('[data-view="tree"]');
   await page.waitForTimeout(100);
   assert.strictEqual(await page.getAttribute('#btnEditPreview', 'aria-pressed'), 'false');
+});
+
+// ---------------------------------------------------------------------
+// JWT decoding (local only, no verification)
+// ---------------------------------------------------------------------
+
+test('a JWT is auto-detected and decoded into header/payload/signature', async (page) => {
+  const jwt = makeJwt({ alg: 'HS256', typ: 'JWT' }, { sub: '1234567890', name: 'John Doe', iat: 1516239022 }, 'SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c');
+  await page.fill('#input', jwt);
+  await page.waitForTimeout(200);
+
+  assert.strictEqual(await page.isVisible('#errorBanner'), false);
+  const notice = await page.innerText('#notice');
+  assert.match(notice, /Decoded JWT/);
+  assert.match(notice, /alg: HS256/);
+  assert.match(notice, /signature not verified/i);
+  assert.strictEqual(await page.getAttribute('#notice', 'class'), 'banner banner-info');
+
+  const outputText = await page.innerText('#output');
+  assert.ok(outputText.includes('John Doe'));
+  assert.ok(outputText.includes('SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'));
+
+  const stats = await page.innerText('#outputStats');
+  assert.match(stats, /Object · 3 keys/);
+});
+
+test('JWT exp claim is decoded to a human-readable date with an expired/not-expired hint', async (page) => {
+  const expired = makeJwt({ alg: 'HS256' }, { exp: 1000000000 });
+  await page.fill('#input', expired);
+  await page.waitForTimeout(200);
+  assert.match(await page.innerText('#notice'), /exp: .*\(expired\)/);
+
+  const future = makeJwt({ alg: 'HS256' }, { exp: 4102444800 }); // year 2100
+  await page.fill('#input', future);
+  await page.waitForTimeout(200);
+  assert.match(await page.innerText('#notice'), /exp: .*\(not expired\)/);
+});
+
+test('JWT with alg:none and an empty signature segment still decodes', async (page) => {
+  const jwt = makeJwt({ alg: 'none' }, { sub: 'x' }, '');
+  await page.fill('#input', jwt);
+  await page.waitForTimeout(200);
+  assert.strictEqual(await page.isVisible('#errorBanner'), false);
+  assert.match(await page.innerText('#notice'), /alg: none/);
+});
+
+test('JWT payload with unicode characters decodes correctly', async (page) => {
+  const jwt = makeJwt({ alg: 'HS256' }, { name: 'José 日本語' });
+  await page.fill('#input', jwt);
+  await page.waitForTimeout(200);
+  const outputText = await page.innerText('#output');
+  assert.ok(outputText.includes('José 日本語'));
+});
+
+test('Format works on a decoded JWT like any other JSON value', async (page) => {
+  const jwt = makeJwt({ alg: 'HS256' }, { sub: 'x' }, 'sig');
+  await page.fill('#input', jwt);
+  await page.waitForTimeout(200);
+  await page.click('#btnFormat');
+  await page.waitForTimeout(100);
+  const formatted = await page.inputValue('#input');
+  const parsed = JSON.parse(formatted);
+  assert.deepStrictEqual(parsed, { header: { alg: 'HS256' }, payload: { sub: 'x' }, signature: 'sig' });
+});
+
+test('non-JWT dot-separated strings are not misdetected and still show a real error', async (page) => {
+  for (const bad of ['not.a.jwt-!!!', 'abc.def', 'YQ.YQ.YQ']) {
+    await page.fill('#input', bad);
+    await page.waitForTimeout(200);
+    assert.strictEqual(await page.isVisible('#errorBanner'), true, `expected "${bad}" to show an error, not a JWT decode`);
+  }
 });
 
 // ---------------------------------------------------------------------

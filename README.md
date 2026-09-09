@@ -1,7 +1,8 @@
 # Pretty Pretty JSON
 
-A single-file, privacy-preserving JSON prettifier. Paste unformatted JSON on
-the left, get a clean, color-coded, collapsible tree on the right.
+A single-file, privacy-first JSON prettifier & JWT decoder. Paste unformatted
+JSON (or a JWT) on the left, get a clean, color-coded, collapsible tree on
+the right.
 
 Everything happens in your browser. There are no external scripts, fonts, or
 stylesheets, no network calls, no cookies, and no analytics - the page even
@@ -10,10 +11,10 @@ phone home even by accident.
 
 ## Features
 
-- Collapsible, color-coded JSON tree, plus a plain indented "Raw" view
-- Handles large documents smoothly via lazy, batched rendering ("show more"
-  instead of freezing the tab on huge arrays)
-- Clear error messages with line/column, click to jump to the problem
+- **JSON prettifier** - collapsible, color-coded tree plus a plain indented
+  "Raw" view, with clear line/column error messages
+- **JWT decoder** - paste a token to see its decoded header and payload as
+  JSON (decoded locally, signature not verified)
 
 ...and a few more worth finding on your own.
 

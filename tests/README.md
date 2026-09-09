@@ -29,6 +29,9 @@ so it's CI-friendly.
 - Theme (system-default, light/dark toggle, persistence)
 - The font selector (mono/sans/serif, kept in sync between panels)
 - Bidirectional preview editing
+- JWT auto-detection and local decoding (header/payload/signature, exp/iat/nbf
+  as readable dates, no signature verification)
+- Footer link tracking the resizable divider
 
 These tests are not part of the deployed site - `package.json` and this
 directory only exist for local/CI verification and aren't needed to open or
