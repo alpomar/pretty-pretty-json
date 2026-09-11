@@ -373,7 +373,7 @@
   .jv-summary{color:var(--text-dim);margin:0 4px;font-style:italic;}
   .jv-children{
     margin-left:8px;
-    padding-left:9px;
+    padding-left:var(--jv-indent, 9px);
     border-left:1px dotted var(--guide);
   }
   .jv-more{
@@ -542,6 +542,12 @@
     var v = indentSel.value;
     if(v === 'tab') return '\t';
     return Number(v);
+  }
+
+  function applyIndentWidth(){
+    var v = indentSel.value;
+    var chars = v === 'tab' ? 4 : Number(v);
+    outputEl.style.setProperty('--jv-indent', chars + 'ch');
   }
 
   function positionToLineCol(text, pos){
@@ -1176,8 +1182,10 @@
     renderAll();
   });
   indentSel.addEventListener('change', function(){
+    applyIndentWidth();
     if(state.ok) renderOutput();
   });
+  applyIndentWidth();
 
   // A paste or a dropped file is "new content" rather than an in-place edit,
   // so the preview defaults to fully expanded for it (unlike normal typing,
